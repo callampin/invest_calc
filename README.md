@@ -42,7 +42,7 @@ sin cuentas ni servidor.
 ## Requisitos
 
 - Node.js 20.19+ o 22.12+
-- pnpm 10+ (el entorno de desarrollo usa pnpm; los scripts también funcionan con `npm run`)
+- pnpm 11 (el workflow de Pages usa esa versión; los scripts también funcionan con `npm run`)
 
 ## Instalación
 
@@ -51,7 +51,7 @@ pnpm install
 pnpm dev
 ```
 
-La app queda disponible en `http://localhost:5173`.
+La app queda disponible en `http://localhost:5173` (en dev la base es `/`).
 
 ## Scripts
 
@@ -59,7 +59,7 @@ La app queda disponible en `http://localhost:5173`.
 | ------------------- | --------------------------------------------------------- |
 | `pnpm dev`          | Servidor de desarrollo                                    |
 | `pnpm build`        | Type-check + build de producción en `dist/`               |
-| `pnpm preview`      | Sirve el build de producción                              |
+| `pnpm preview`      | Sirve el build en `http://localhost:4173/invest_calc/`    |
 | `pnpm test`         | Ejecuta la suite de tests una vez                         |
 | `pnpm test:watch`   | Tests en modo watch                                       |
 | `pnpm coverage`     | Tests con reporte de cobertura (mínimo 90 % en `domain/`) |
@@ -157,8 +157,41 @@ pnpm build
 pnpm preview --port 4173
 ```
 
-Abre `http://localhost:4173`, espera a que se registre el service worker, activa el modo offline en
-DevTools y recarga.
+Abre `http://localhost:4173/invest_calc/`, espera a que se registre el service worker, activa el modo
+offline en DevTools y recarga.
+
+## Despliegue en GitHub Pages
+
+El sitio se publica en **https://callampin.github.io/invest_calc/** mediante
+`.github/workflows/deploy.yml`: en cada push a `main` instala dependencias, ejecuta `pnpm build` y
+sube `dist/` como artefacto de Pages.
+
+Configuración inicial (una sola vez):
+
+1. GitHub → **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+2. Push a `main` o ejecuta el workflow a mano desde la pestaña **Actions**.
+
+Como el sitio vive en un subdirectorio, `vite.config.ts` define
+`REPO_BASE = '/invest_calc/'` y Vite lo aplica a los assets, al manifest y al service worker. Si
+cambias el nombre del repositorio o usas un dominio propio, actualiza `REPO_BASE` (`'/'` para un
+dominio propio). En desarrollo la base sigue siendo `/`.
+
+Para reproducir el entorno de Pages en local:
+
+```bash
+pnpm build
+pnpm preview   # http://localhost:4173/invest_calc/
+```
+
+Verificación rápida tras el deploy:
+
+```bash
+curl -s https://callampin.github.io/invest_calc/ | grep -o 'src="[^"]*"'
+curl -sI https://callampin.github.io/invest_calc/manifest.webmanifest
+```
+
+Deben aparecer rutas `/invest_calc/assets/...` y el manifest debe responder con
+`application/manifest+json`.
 
 ## Persistencia y respaldo
 
@@ -203,7 +236,7 @@ pnpm build
 ```bash
 pnpm build
 pnpm preview --port 4173
-npx lighthouse http://localhost:4173 --only-categories=accessibility --chrome-flags="--headless=new"
+npx lighthouse http://localhost:4173/invest_calc/ --only-categories=accessibility --chrome-flags="--headless=new"
 ```
 
 ## Limitaciones
